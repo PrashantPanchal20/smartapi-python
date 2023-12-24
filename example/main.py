@@ -26,21 +26,13 @@ feedToken=obj.getfeedToken()
 userProfile= obj.getProfile(refreshToken)
 # print(userProfile['data']['exchanges'])
 # print(userProfile)
-def gettokenInfo1(token_df, exch_seg ):
-    # strike_price = strike_price * 100
-
-    if exch_seg == 'NSE':
-        eq_df = token_df[(token_df['exch_seg'] == 'NSE')]
-        # print(eq_df[eq_df['Name'] == symbol])
-        return eq_df[eq_df['name']]
-
 
 def gettokenInfo(token_df, exch_seg, instrumenttype, symbol, strike_price, pe_ce ):
     strike_price = strike_price * 100
 
     if exch_seg == 'NSE':
         eq_df = token_df[(token_df['exch_seg'] == 'NSE') & (token_df['symbol'].str.contains('EQ'))]
-        print(eq_df[eq_df['Name'] == symbol])
+        # print(eq_df[eq_df['Name'] == symbol])
         return eq_df[eq_df['Name'] == symbol]
     
     elif exch_seg == 'NFO' and ((instrumenttype == 'FUTSTK') or (instrumenttype == 'FUTIDX')):
@@ -64,25 +56,70 @@ else:
 token_info = gettokenInfo(token_df, 'NFO', 'OPTIDX', 'NIFTY', 21400, 'PE').iloc[0]
 print(token_info['symbol'], token_info['token'], token_info['lotsize'])
 # place order
-try:
-    orderparams = {
-        "variety": "NORMAL",
-        "tradingsymbol": token_info['symbol'],
-        "symboltoken": token_info['token'],
-        "transactiontype": "BUY",
+# try:
+#     orderparams = {
+#         "variety": "NORMAL",
+#         "tradingsymbol": token_info['symbol'],
+#         "symboltoken": token_info['token'],
+#         "transactiontype": "BUY",
+#         "exchange": "NSE",
+#         "ordertype": "LIMIT",
+#         "producttype": "INTRADAY",
+#         "duration": "DAY",
+#         "price": "0",
+#         "squareoff": "0",
+#         "stoploss": "0",
+#         "quantity": token_info['lotsize']
+#         }
+#     orderId=obj.placeOrder(orderparams)
+#     print("The order id is: {}".format(orderId))
+# except Exception as e:
+#     print("Order placement failed: {}".format(e.message))
+
+
+# Order book
+# orders = obj.orderBook()
+# # print(orders)
+# trades = obj.tradeBook()
+# # print(trades)
+# position = obj.position()
+# # print(position)
+# holding = obj.holding()
+# # print(holding)
+# LTP = obj.ltpData('NFO',token_info['symbol'], token_info['token'])
+# # print(LTP)
+
+
+#Historic api == Candel data function= Only for Equity segment
+def historical_data():
+    try:
+        historicParam={
         "exchange": "NSE",
-        "ordertype": "LIMIT",
-        "producttype": "INTRADAY",
-        "duration": "DAY",
-        "price": "0",
-        "squareoff": "0",
-        "stoploss": "0",
-        "quantity": token_info['lotsize']
+        "symboltoken": "3045",
+        "interval": "ONE_MINUTE",
+        "fromdate": "2021-02-08 09:15", 
+        "todate": "2021-02-08 10:30"
         }
-    orderId=obj.placeOrder(orderparams)
-    print("The order id is: {}".format(orderId))
-except Exception as e:
-    print("Order placement failed: {}".format(e.message))
+        return obj.getCandleData(historicParam)
+    except Exception as e:
+        print("Historic Api failed: {}".format(e.message))
+
+    # print(obj.getCandleData(historicParam))
+
+res_json = historical_data()
+# print(res_json)
+columns = ['timestamp','Open', 'High', 'Low', 'Close', 'Volumn']
+df = pd.DataFrame(res_json['data'], columns = columns)
+df['timestamp'] = pd.to_datetime(df['timestamp'], format='ISO8601')  #ISO8601  , %y-%m-%dT%H:%M:%S , mixed
+print(df)
+# #logout
+# try:
+#     logout=obj.terminateSession('Your Client Id')
+#     print("Logout Successfull")
+# except Exception as e:
+#     print("Logout failed: {}".format(e.message))
+
+
 #gtt rule creation
 # try:
 #     gttCreateParams={
@@ -110,26 +147,6 @@ except Exception as e:
 #     lists=obj.gttLists(status,page,count)
 # except Exception as e:
 #     print("GTT Rule List failed: {}".format(e.message))
-
-#Historic api
-# try:
-#     historicParam={
-#     "exchange": "NSE",
-#     "symboltoken": "3045",
-#     "interval": "ONE_MINUTE",
-#     "fromdate": "2021-02-08 09:00", 
-#     "todate": "2021-02-08 09:16"
-#     }
-#     obj.getCandleData(historicParam)
-# except Exception as e:
-#     print("Historic Api failed: {}".format(e.message))
-# #logout
-# try:
-#     logout=obj.terminateSession('Your Client Id')
-#     print("Logout Successfull")
-# except Exception as e:
-#     print("Logout failed: {}".format(e.message))
-
 
 
 # ## WebSocket
