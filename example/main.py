@@ -1,11 +1,14 @@
 # package import statement
+import sys
+sys.path.append("C:\Users\panch\Desktop\Prashant\smartapi-python\SmartApi")
 import pyotp
 import pandas as pd
 from datetime import datetime
 import requests
 import numpy as np
 from SmartApi import SmartConnect #or from smartapi.smartConnect import SmartConnect
-
+# from talib.abstract import *
+# import talib
 #import smartapi.smartExceptions(for smartExceptions)
 token = "U6MVYLHYB73EO5VYRSZFZOPOG4"
 totp = pyotp.TOTP(token).now()
@@ -91,27 +94,66 @@ print(token_info['symbol'], token_info['token'], token_info['lotsize'])
 
 
 #Historic api == Candel data function= Only for Equity segment
-def historical_data():
+# def historical_data():
+#     try:
+#         historicParam={
+#         "exchange": "NSE",
+#         "symboltoken": "3045",
+#         "interval": "ONE_MINUTE",
+#         "fromdate": "2021-02-08 09:15", 
+#         "todate": "2021-02-08 10:30"
+#         }
+#         return obj.getCandleData(historicParam)
+#     except Exception as e:
+#         print("Historic Api failed: {}".format(e.message))
+
+#     # print(obj.getCandleData(historicParam))
+
+# res_json = historical_data()
+# # print(res_json)
+# columns = ['timestamp','Open', 'High', 'Low', 'Close', 'Volumn']
+# df = pd.DataFrame(res_json['data'], columns = columns)
+# df['timestamp'] = pd.to_datetime(df['timestamp'], format='ISO8601')  #ISO8601  , %y-%m-%dT%H:%M:%S , mixed
+# print(df)
+
+from datetime import timedelta
+#Historic api == Candel data function= Only for Equity segment
+def historical_data(token, interval = "FIFTEEN_MINUTE"):
+    to_date = datetime.now()
+    from_date = to_date - timedelta(days=3)
+    from_date_format = from_date.strftime("%Y-%m-%d %H:%M")
+    to_date_format = to_date.strftime("%Y-%m-%d %H:%M")
+
     try:
         historicParam={
         "exchange": "NSE",
-        "symboltoken": "3045",
-        "interval": "ONE_MINUTE",
-        "fromdate": "2021-02-08 09:15", 
-        "todate": "2021-02-08 10:30"
+        "symboltoken": token,
+        "interval": interval,
+        "fromdate": from_date_format, 
+        "todate": to_date_format
         }
-        return obj.getCandleData(historicParam)
+        candel_json = obj.getCandleData(historicParam)
+        columns = ['timestamp','Open', 'High', 'Low', 'Close', 'Volumn']
+        df = pd.DataFrame(candel_json['data'], columns = columns)
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df['timestamp'] = df['timestamp'].dt.strftime("%Y-%m-%d %H:%M")
+        return df
+
     except Exception as e:
         print("Historic Api failed: {}".format(e.message))
 
-    # print(obj.getCandleData(historicParam))
+#indicator applied
+    # df['EMA_20'] = talib.EMA(df.close, timeperiod = 20)
+    # df['RSI_14'] = talib.RSI(df.close, timeperiod = 14)
+    # df['ATR_20'] = talib.ATR(df.High, df.Low, df.close, timeperiod = 20)
 
-res_json = historical_data()
-# print(res_json)
-columns = ['timestamp','Open', 'High', 'Low', 'Close', 'Volumn']
-df = pd.DataFrame(res_json['data'], columns = columns)
-df['timestamp'] = pd.to_datetime(df['timestamp'], format='ISO8601')  #ISO8601  , %y-%m-%dT%H:%M:%S , mixed
-print(df)
+    print(df)
+
+historical_data(1660)   #Nifty showing Error. code 65622, ITC=1660
+
+#indicator applied
+
+
 # #logout
 # try:
 #     logout=obj.terminateSession('Your Client Id')
