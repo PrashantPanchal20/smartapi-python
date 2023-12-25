@@ -1,6 +1,6 @@
 # package import statement
-import sys
-sys.path.append("C:\Users\panch\Desktop\Prashant\smartapi-python\SmartApi")
+# import sys
+# sys.path.append("C:\Users\panch\Desktop\Prashant\smartapi-python\SmartApi")
 import pyotp
 import pandas as pd
 from datetime import datetime
@@ -45,7 +45,13 @@ def gettokenInfo(token_df, exch_seg, instrumenttype, symbol, strike_price, pe_ce
         return token_df[(token_df['exch_seg'] == 'NFO') & (token_df['instrumenttype'] == instrumenttype) & (token_df['name'] == symbol) & (token_df['strike'] == strike_price) & (token_df['symbol'].str.endswith(pe_ce))].sort_values(by=['expiry'])
 
 json_url = 'https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json'
-response  = requests.get(json_url)
+try:
+    response  = requests.get(json_url, verify=True)
+    response.raise_for_status()  # Raise an HTTPError for bad responses
+    print(response.text)
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
+
 
 if response.status_code == 200:
     json_data = response.json()
@@ -147,10 +153,8 @@ def historical_data(token, interval = "FIFTEEN_MINUTE"):
     # df['RSI_14'] = talib.RSI(df.close, timeperiod = 14)
     # df['ATR_20'] = talib.ATR(df.High, df.Low, df.close, timeperiod = 20)
 
-    print(df)
-
 historical_data(1660)   #Nifty showing Error. code 65622, ITC=1660
-
+print(df)
 #indicator applied
 
 

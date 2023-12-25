@@ -128,7 +128,7 @@ class SmartConnect(object):
         self.session_expiry_hook = method
     
     def getUserId():
-        return userId
+        return "IIRA93449"
 
     def setUserId(self,id):
         self.userId=id
