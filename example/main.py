@@ -48,7 +48,7 @@ json_url = 'https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPI
 try:
     response  = requests.get(json_url, verify=True)
     response.raise_for_status()  # Raise an HTTPError for bad responses
-    print(response.text)
+    # print(response.text)
 except requests.exceptions.RequestException as e:
     print(f"Error: {e}")
 
@@ -126,7 +126,7 @@ from datetime import timedelta
 #Historic api == Candel data function= Only for Equity segment
 def historical_data(token, interval = "FIFTEEN_MINUTE"):
     to_date = datetime.now()
-    from_date = to_date - timedelta(days=3)
+    from_date = to_date - timedelta(days=5)
     from_date_format = from_date.strftime("%Y-%m-%d %H:%M")
     to_date_format = to_date.strftime("%Y-%m-%d %H:%M")
 
@@ -143,18 +143,59 @@ def historical_data(token, interval = "FIFTEEN_MINUTE"):
         df = pd.DataFrame(candel_json['data'], columns = columns)
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         df['timestamp'] = df['timestamp'].dt.strftime("%Y-%m-%d %H:%M")
-        return df
+        # return df
+        
 
     except Exception as e:
         print("Historic Api failed: {}".format(e.message))
-
+    
 #indicator applied
     # df['EMA_20'] = talib.EMA(df.close, timeperiod = 20)
     # df['RSI_14'] = talib.RSI(df.close, timeperiod = 14)
     # df['ATR_20'] = talib.ATR(df.High, df.Low, df.close, timeperiod = 20)
+    ema_period = 20
+    df['EMA_20'] = df['Close'].ewm(span=ema_period, adjust=False).mean()
+
+    rsi_period = 14
+    # Calculate daily price changes
+    delta = df['Close'].diff(1)
+    # Calculate gains and losses
+    gain = delta.where(delta > 0, 0)
+    loss = -delta.where(delta < 0, 0)
+    # Calculate average gains and losses over the specified period
+    average_gain = gain.rolling(window=rsi_period, min_periods=1).mean()
+    average_loss = loss.rolling(window=rsi_period, min_periods=1).mean()
+    # Calculate relative strength (RS)
+    rs = average_gain / average_loss
+    # Calculate the RSI
+    df['RSI_14'] = 100 - (100 / (1 + rs))
+
+    # Replace 'high', 'low', and 'close' with the actual column names in your DataFrame
+    high_prices = df['High']
+    low_prices = df['Low']
+    close_prices = df['Close']
+
+    # Replace 'your_period' with the desired period for ATR calculation
+    # For example, a common period is 14 for a 14-day ATR
+    atr_period = 14
+
+    # Calculate True Range (TR)
+    tr1 = high_prices - low_prices
+    tr2 = abs(high_prices - close_prices.shift())
+    tr3 = abs(low_prices - close_prices.shift())
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+
+    # Calculate ATR using the rolling mean
+    df['ATR_14'] = tr.rolling(window=atr_period).mean()
+
+    # print(df['timestamp','Open', 'High', 'Low', 'Close', 'Volumn', 'EMA_20', 'RSI_14', 'ATR_14'])
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', None)
+    print(df)
+    
 
 historical_data(1660)   #Nifty showing Error. code 65622, ITC=1660
-print(df)
+
 #indicator applied
 
 
