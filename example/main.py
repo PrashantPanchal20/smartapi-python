@@ -188,6 +188,28 @@ def historical_data(token, interval = "FIFTEEN_MINUTE"):
     # Calculate ATR using the rolling mean
     df['ATR_14'] = tr.rolling(window=atr_period).mean()
 
+    # Replace 'short_window' and 'long_window' with the desired short and long windows for MACD
+    short_window = 12
+    long_window = 26
+
+    # Calculate short-term and long-term exponential moving averages
+    short_ema = df['Close'].ewm(span=short_window, adjust=False).mean()
+    long_ema = df['Close'].ewm(span=long_window, adjust=False).mean()
+
+    # Calculate MACD line
+    macd_line = short_ema - long_ema
+
+    # Calculate signal line using a 9-day EMA of the MACD line
+    signal_line = macd_line.ewm(span=9, adjust=False).mean()
+
+    # Calculate the MACD histogram
+    macd_histogram = macd_line - signal_line
+
+    # Add the calculated MACD components as new columns to the DataFrame
+    df['MACD_line'] = macd_line
+    df['Signal_line'] = signal_line
+    df['MACD_histogram'] = macd_histogram
+
     # print(df['timestamp','Open', 'High', 'Low', 'Close', 'Volumn', 'EMA_20', 'RSI_14', 'ATR_14'])
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', None)
