@@ -177,7 +177,7 @@ def historical_data(token, interval = "FIFTEEN_MINUTE"):
 
     # Replace 'your_period' with the desired period for ATR calculation
     # For example, a common period is 14 for a 14-day ATR
-    atr_period = 14
+    atr_period = 20
 
     # Calculate True Range (TR)
     tr1 = high_prices - low_prices
@@ -186,8 +186,37 @@ def historical_data(token, interval = "FIFTEEN_MINUTE"):
     tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
 
     # Calculate ATR using the rolling mean
-    df['ATR_14'] = tr.rolling(window=atr_period).mean()
+    df['ATR_20'] = tr.rolling(window=atr_period).mean()
 
+#Stratagy on the basis of EMA, RSI and ATR
+    df['Cross_Up'] = df['Cross_Down'] = df['RSI_Up'] = 0
+    df['Buy/Sell'] = 'No'
+    df = df.round(decimals = 2)
+
+    for i  in range(20, len(df)):
+        if df['Close'][i-1] <= df['EMA_20'][i-1] and df['Close'][i] > df['EMA_20'][i]:
+            df['Cross_Up'][i] = 1
+        if df['Close'][i-1] >= df['EMA_20'][i-1] and df['Close'][i] < df['EMA_20'][i]:
+            df['Cross_Down'][i] = 1
+        if df['RSI_14'][i] > 50:
+            df['RSI_Up'][i] = 1
+    
+        if df['Cross_Up'][i] == 1 and df['RSI_Up'][i] ==1 :
+            df['Buy/Sell'][i] = 'Buy'
+
+    #get last data
+        # latest_candel = df.iloc[-10]
+        # latest_candel = df
+        # if df['Cross_Up'][i] == 1 and df['RSI_Up'][i] ==1 :
+        #     LTP = latest_candel['Close']
+        #     SL = LTP - 2*latest_candel['ATR_20']
+        #     target = LTP + 5*latest_candel['ATR_20']
+        #     qty = 1
+        #     print(f'Order Placed SL {SL} TGT {target} QTY {qty} at {datetime.now()}')
+
+    # df.tail(10)
+
+#MACD apply
     # Replace 'short_window' and 'long_window' with the desired short and long windows for MACD
     short_window = 12
     long_window = 26
