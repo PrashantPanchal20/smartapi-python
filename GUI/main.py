@@ -115,14 +115,16 @@ def _main_window():
     style.configure('TButton', font=('Helvetica', 11))
     tabControl = ttk.Notebook(window)
 
-    global tab1, tab2, tab3, chain_txtbox, chain_txtbox1
+    global tab1, tab2, tab3, tab4, chain_txtbox, chain_txtbox1
     tab1 = ttk.Frame(tabControl,padding=5)
     tab2 = ttk.Frame(tabControl,padding=5)
     tab3 = ttk.Frame(tabControl,padding=5)
+    tab4 = ttk.Frame(tabControl,padding=5)
 
     tabControl.add(tab1, text="   Option Chain ")
     tabControl.add(tab2, text="  Graph Dashboard  ")
     tabControl.add(tab3, text=" Company Stock Data ")
+    tabControl.add(tab4, text=" Angel One API ")
     tabControl.pack(fill = BOTH, expand = True)
 #===============================================================  TAB 1 : UI =============================================== 
     tab1_frame0 = Frame(tab1, height=100) #background="yellow"
@@ -142,18 +144,18 @@ def _main_window():
     numstrike_combobox['state'] = 'readonly'
     
     def tab_change():
-        tabControl.select(tab2)
+        tabControl.select(tab4)
         # plot_OI(op_chain.data_frame_OP)
 
 
     button0 = Button(tab1_frame0, text= "Continue ",command = get_op_chain)
     button0.place(x=720, y=20)
-    button_graph = Button(tab1_frame0, text= "Data on Graphs: Click Here ! ", command= tab_change)
+    button_graph = Button(tab1_frame0, text= "Angel One API : Click Here ! ", command= tab_change)
     button_graph.place(x=1000, y=20)
 
     underlying_txt = Label(tab1_frame0, text= "UnderLying Index :: ")
     underlying_txt.place(x=21, y=60)
-    underlying_box = Text(tab1_frame0, width= 69, height=1, bg = 'cyan', foreground= 'black', font=("Arial 14", 14, "bold"),state= 'disabled')
+    underlying_box = Text(tab1_frame0, width= 60, height=1, bg = 'cyan', foreground= 'black', font=("Arial 14", 14, "bold"),state= 'disabled')
     underlying_box.place(x=180, y=60)
 
     time_txtbox = Text(tab1_frame0, width=40, height=1, foreground='red', font=("Arial 12", 12, "bold"))
@@ -181,31 +183,31 @@ def _main_window():
 
     res_lable = Label(tab1_frame2, text= 'Major Resistance ::')
     res_lable.place(x=20, y=20)
-    res_lable_box = Text(tab1_frame2, width=50, height=1,  bg = 'lightblue', foreground= 'black', font=("Arial 14", 14, "bold"),state='disabled')
+    res_lable_box = Text(tab1_frame2, width=45, height=1,  bg = 'lightblue', foreground= 'black', font=("Arial 14", 14, "bold"),state='disabled')
     res_lable_box.place(x=150, y=20)
 
     sup_lable = Label(tab1_frame2, text= 'Major Support ::')
-    sup_lable.place(x=650, y=20)
+    sup_lable.place(x=700, y=20)
     sup_lable_box = Text(tab1_frame2, width=50, height=1,  bg = 'pink', foreground= 'black', font=("Arial 14", 14, "bold"), state='disabled')
     sup_lable_box.place(x=800, y=20)
 
     change_oi_lable_call = Label(tab1_frame2, text= 'Max Change OI ::')
     change_oi_lable_call.place(x=20, y=60)
-    change_oi_box_call = Text(tab1_frame2, width=50, height=1,  bg = 'lightblue', foreground= 'black', font=("Arial 14", 14, "bold"),state='disabled')
+    change_oi_box_call = Text(tab1_frame2, width=45, height=1,  bg = 'lightblue', foreground= 'black', font=("Arial 14", 14, "bold"),state='disabled')
     change_oi_box_call.place(x=150, y=60)
 
     change_oi_lable_put = Label(tab1_frame2, text= 'Max Change OI ::')
-    change_oi_lable_put.place(x=650, y=60)
+    change_oi_lable_put.place(x=700, y=60)
     change_oi_box_put = Text(tab1_frame2, width=50, height=1,  bg = 'pink', foreground= 'black', font=("Arial 14", 14, "bold"), state='disabled')
     change_oi_box_put.place(x=800, y=60)
 
     max_vol_call = Label(tab1_frame2, text= 'Max Call Volume ::')
     max_vol_call.place(x=20, y=100)
-    max_vol_call_box = Text(tab1_frame2, width=50, height=1,  bg = 'lightblue', foreground= 'black', font=("Arial 14", 14, "bold"),state='disabled')
+    max_vol_call_box = Text(tab1_frame2, width=45, height=1,  bg = 'lightblue', foreground= 'black', font=("Arial 14", 14, "bold"),state='disabled')
     max_vol_call_box.place(x=150, y=100)
 
     max_vol_put = Label(tab1_frame2, text= 'Max Put Volume ::')
-    max_vol_put.place(x=650, y=100)
+    max_vol_put.place(x=690, y=100)
     max_vol_put_box = Text(tab1_frame2, width=50, height=1,  bg = 'pink', foreground= 'black', font=("Arial 14", 14, "bold"), state='disabled')
     max_vol_put_box.place(x=800, y=100)
 
@@ -348,7 +350,33 @@ def _main_window():
     op_field = tkinter.Text(tab3_frame2)
     op_field.pack(fill = BOTH, expand = True)
     op_field.xview_scroll(1, 'units')
-    
+
+#=========================================================== TAB 4 company stock data ================================
+    def create_labeled_frame(root, label_text, frame_height):
+        frame = ttk.LabelFrame(root, text=label_text, height=frame_height)
+        frame.pack(fill = 'both')
+        return frame
+
+    tab4_frame0 = Frame(tab4, background="yellow", height = 100)
+    tab4_frame0.pack(fill="x")
+
+    frame1 = create_labeled_frame(tab4_frame0, "Welcome ::", 80)
+    label1 = ttk.Label(frame1, text="")
+    label1.pack()
+    button_getOI_chart = ttk.Button(frame1, text= 'Get OI Data on Graph. ', command= get_oi_char)
+    button_getOI_chart.place(x=0, y=0)
+
+    tab4_frame1 = Frame(tab4, background="yellow",width=150)
+    tab4_frame1.pack(side= 'left', fill="y")
+
+    tab4_frame2 = Frame(tab4,background="blue", height=450)
+    tab4_frame2.pack(fill= 'x')
+
+    tab4_frame3 = Frame(tab4,background="pink", height=150)
+    tab4_frame3.pack(fill= 'x')
+
+
+
     update_clk()
     window.mainloop()
     

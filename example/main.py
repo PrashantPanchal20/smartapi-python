@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_squared_error
 import ta
+import time
 import pyotp
 import pandas as pd
 from datetime import datetime
@@ -35,60 +36,64 @@ userProfile= obj.getProfile(refreshToken)
 # print(userProfile['data']['exchanges'])
 # print(userProfile)
 
-def gettokenInfo(token_df, exch_seg, instrumenttype, symbol, strike_price, pe_ce ):
-    strike_price = strike_price * 100
+# def gettokenInfo(token_df, symbol, exch_seg = 'NSE', instrumenttype = 'OPTIDX', strike_price = '', pe_ce = 'CE' ):
+#     strike_price = strike_price * 100
 
-    if exch_seg == 'NSE':
-        eq_df = token_df[(token_df['exch_seg'] == 'NSE') & (token_df['symbol'].str.contains('EQ'))]
-        # print(eq_df[eq_df['Name'] == symbol])
-        return eq_df[eq_df['Name'] == symbol]
+#     if exch_seg == 'NSE':
+#         eq_df = token_df[(token_df['exch_seg'] == 'NSE') & (token_df['symbol'].str.contains('EQ'))]
+#         # print(eq_df[eq_df['Name'] == symbol])
+#         return eq_df[eq_df['Name'] == symbol]
     
-    elif exch_seg == 'NFO' and ((instrumenttype == 'FUTSTK') or (instrumenttype == 'FUTIDX')):
-        return token_df[(token_df['exch_seg'] == 'NFO') & (token_df['instrumenttype'] == instrumenttype) & (token_df['name'] == symbol)].sort_values(by=['expiry'])
+#     elif exch_seg == 'NFO' and ((instrumenttype == 'FUTSTK') or (instrumenttype == 'FUTIDX')):
+#         return token_df[(token_df['exch_seg'] == 'NFO') & (token_df['instrumenttype'] == instrumenttype) & (token_df['name'] == symbol)].sort_values(by=['expiry'])
     
-    elif exch_seg == 'NFO' and ((instrumenttype == 'OPTSTK') or (instrumenttype == 'OPTIDX')):
-        return token_df[(token_df['exch_seg'] == 'NFO') & (token_df['instrumenttype'] == instrumenttype) & (token_df['name'] == symbol) & (token_df['strike'] == strike_price) & (token_df['symbol'].str.endswith(pe_ce))].sort_values(by=['expiry'])
+#     elif exch_seg == 'NFO' and ((instrumenttype == 'OPTSTK') or (instrumenttype == 'OPTIDX')):
+#         return token_df[(token_df['exch_seg'] == 'NFO') & (token_df['instrumenttype'] == instrumenttype) & (token_df['name'] == symbol) & (token_df['strike'] == strike_price) & (token_df['symbol'].str.endswith(pe_ce))].sort_values(by=['expiry'])
 
-json_url = 'https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json'
-try:
-    response  = requests.get(json_url, verify=True)
-    response.raise_for_status()  # Raise an HTTPError for bad responses
-    # print(response.text)
-except requests.exceptions.RequestException as e:
-    print(f"Error: {e}")
-
-
-if response.status_code == 200:
-    json_data = response.json()
-    token_df = pd.DataFrame.from_dict(json_data)
-    token_df['expiry'] = pd.to_datetime(token_df['expiry'])
-    token_df = token_df.astype({'strike':float})
-    # print(token_df)
-else: 
-    print(f"Failed to fetch data. Status code: {response.status_code}")
-# token_df.to_csv(r'C:\Users\panch\Desktop\Prashant\smartapi-python' + 'angle_token.csv', header=True, index=False) #for save file into csv format
-token_info = gettokenInfo(token_df, 'NFO', 'OPTIDX', 'NIFTY', 21400, 'PE').iloc[0]
-print(token_info['symbol'], token_info['token'], token_info['lotsize'])
-# place order
+# json_url = 'https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json'
 # try:
-#     orderparams = {
-#         "variety": "NORMAL",
-#         "tradingsymbol": token_info['symbol'],
-#         "symboltoken": token_info['token'],
-#         "transactiontype": "BUY",
-#         "exchange": "NSE",
-#         "ordertype": "LIMIT",
-#         "producttype": "INTRADAY",
-#         "duration": "DAY",
-#         "price": "0",
-#         "squareoff": "0",
-#         "stoploss": "0",
-#         "quantity": token_info['lotsize']
-#         }
-#     orderId=obj.placeOrder(orderparams)
-#     print("The order id is: {}".format(orderId))
-# except Exception as e:
-#     print("Order placement failed: {}".format(e.message))
+#     response  = requests.get(json_url, verify=True)
+#     response.raise_for_status()  # Raise an HTTPError for bad responses
+#     # print(response.text)
+# except requests.exceptions.RequestException as e:
+#     print(f"Error: {e}")
+
+
+# if response.status_code == 200:
+#     json_data = response.json()
+#     token_df = pd.DataFrame.from_dict(json_data)
+#     token_df['expiry'] = pd.to_datetime(token_df['expiry'])
+#     token_df = token_df.astype({'strike':float})
+#     # print(token_df)
+# else: 
+#     print(f"Failed to fetch data. Status code: {response.status_code}")
+# # token_df.to_csv(r'C:\Users\panch\Desktop\Prashant\smartapi-python' + 'angle_token.csv', header=True, index=False) #for save file into csv format
+# # token_info = gettokenInfo(token_df, 'NFO', 'OPTIDX', 'NIFTY', 21400, 'PE').iloc[0]
+# token_info = gettokenInfo(token_df,'ITC').iloc[0]
+# print(token_info['symbol'], token_info['token'], token_info['lotsize'])
+# # place order
+
+def order_place(token, symbol, qty, buy_sell, ordertype, price, variety = 'NORMAL', exch_seg = 'NSE', triggerprice = 0):
+    try:
+        orderparams = {
+            "variety": variety,
+            "tradingsymbol": symbol,
+            "symboltoken": token,
+            "transactiontype": buy_sell,
+            "exchange": exch_seg,
+            "ordertype": ordertype,
+            "producttype": "INTRADAY",
+            "duration": "DAY",
+            "price": price,
+            "squareoff": "0",
+            "stoploss": "0",
+            "quantity": qty
+            }
+
+        orderId = obj.placeOrder(orderparams) 
+        print("The order id is: {}".format(orderId))
+    except Exception as e:
+        print("Order placement failed: {}".format(e.message))
 
 
 # Order book
@@ -104,36 +109,15 @@ print(token_info['symbol'], token_info['token'], token_info['lotsize'])
 # # print(LTP)
 
 
-# Historic api == Candel data function= Only for Equity segment
-# def historical_data():
-#     try:
-#         historicParam={
-#         "exchange": "NSE",
-#         "symboltoken": "3045",
-#         "interval": "ONE_MINUTE",
-#         "fromdate": "2021-02-08 09:15", 
-#         "todate": "2021-02-08 10:30"
-#         }
-#         return obj.getCandleData(historicParam)
-#     except Exception as e:
-#         print("Historic Api failed: {}".format(e.message))
-
-#     # print(obj.getCandleData(historicParam))
-
-# res_json = historical_data()
-# # print(res_json)
-# columns = ['timestamp','Open', 'High', 'Low', 'Close', 'Volumn']
-# df = pd.DataFrame(res_json['data'], columns = columns)
-# df['timestamp'] = pd.to_datetime(df['timestamp'], format='ISO8601')  #ISO8601  , %y-%m-%dT%H:%M:%S , mixed
-# print(df)
-
 from datetime import timedelta
 #Historic api == Candel data function= Only for Equity segment
-def historical_data(token, interval = "FIVE_MINUTE"):  # ONE_MINUTE , THREE_MINUTE, FIVE_MINUTE, TEN_MINUTE, FIFTEEN_MINUTE
+def historical_data(token, symbol, interval = "ONE_MINUTE"):  # ONE_MINUTE , THREE_MINUTE, FIVE_MINUTE, TEN_MINUTE, FIFTEEN_MINUTE
     to_date = datetime.now()
     from_date = to_date - timedelta(days=6)
     from_date_format = from_date.strftime("%Y-%m-%d %H:%M")
     to_date_format = to_date.strftime("%Y-%m-%d %H:%M")
+    executed_orders_count = 0
+
 
     try:
         historicParam={
@@ -158,51 +142,38 @@ def historical_data(token, interval = "FIVE_MINUTE"):  # ONE_MINUTE , THREE_MINU
     except Exception as e:
         print("Historic Api failed: {}".format(e.message))
     
-#indicator applied
-    # df['EMA_20'] = talib.EMA(df.close, timeperiod = 20)
-    # df['RSI_14'] = talib.RSI(df.close, timeperiod = 14)
-    # df['ATR_20'] = talib.ATR(df.High, df.Low, df.close, timeperiod = 20)
-    ema_period = 15
-    df['EMA_15'] = df['Close'].ewm(span=ema_period, adjust=False).mean()
-    # df['EMA_slope'] = np.polyfit(df.index, df['EMA_15'], 1)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', None)
-    pd.set_option('display.max_rows', None)
-    print(df)
+    def RSI(df):
+        rsi_period = 14
+        # Calculate daily price changes
+        delta = df['Close'].diff(1)
+        # Calculate gains and losses
+        gain = delta.where(delta > 0, 0)
+        loss = -delta.where(delta < 0, 0)
+        # Calculate average gains and losses over the specified period
+        average_gain = gain.rolling(window=rsi_period, min_periods=1).mean()
+        average_loss = loss.rolling(window=rsi_period, min_periods=1).mean()
+        # Calculate relative strength (RS)
+        rs = average_gain / average_loss
+        # Calculate the RSI
+        df['RSI_14'] = 100 - (100 / (1 + rs))
 
+        # Replace 'high', 'low', and 'close' with the actual column names in your DataFrame
+        high_prices = df['High']
+        low_prices = df['Low']
+        close_prices = df['Close']
 
+        # Replace 'your_period' with the desired period for ATR calculation
+        # For example, a common period is 14 for a 14-day ATR
+        atr_period = 20
 
-    rsi_period = 14
-    # Calculate daily price changes
-    delta = df['Close'].diff(1)
-    # Calculate gains and losses
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
-    # Calculate average gains and losses over the specified period
-    average_gain = gain.rolling(window=rsi_period, min_periods=1).mean()
-    average_loss = loss.rolling(window=rsi_period, min_periods=1).mean()
-    # Calculate relative strength (RS)
-    rs = average_gain / average_loss
-    # Calculate the RSI
-    df['RSI_14'] = 100 - (100 / (1 + rs))
+        # Calculate True Range (TR)
+        tr1 = high_prices - low_prices
+        tr2 = abs(high_prices - close_prices.shift())
+        tr3 = abs(low_prices - close_prices.shift())
+        tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
 
-    # Replace 'high', 'low', and 'close' with the actual column names in your DataFrame
-    high_prices = df['High']
-    low_prices = df['Low']
-    close_prices = df['Close']
-
-    # Replace 'your_period' with the desired period for ATR calculation
-    # For example, a common period is 14 for a 14-day ATR
-    atr_period = 20
-
-    # Calculate True Range (TR)
-    tr1 = high_prices - low_prices
-    tr2 = abs(high_prices - close_prices.shift())
-    tr3 = abs(low_prices - close_prices.shift())
-    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-
-    # Calculate ATR using the rolling mean
-    df['ATR_20'] = tr.rolling(window=atr_period).mean()
+        # Calculate ATR using the rolling mean
+        df['ATR_20'] = tr.rolling(window=atr_period).mean()
 
 #Stratagy on the basis of EMA, RSI and ATR
     # df['Cross_Up'] = df['Cross_Down'] = df['RSI_Up'] = 0
@@ -250,62 +221,79 @@ def historical_data(token, interval = "FIVE_MINUTE"):  # ONE_MINUTE , THREE_MINU
         data['MACD'] = data['12EMA'] - data['26EMA']
         
         data['Signal_Line'] = data['MACD'].ewm(span=signal_period, adjust=False).mean()
+        # data['EMA_slope'] = np.polyfit(data.index, df['EMA_15'], 1)
         return data
 
     def ema_strategy(data):
         data['15EMA'] = data['Close'].ewm(span=15, adjust=False).mean()
         data['30EMA'] = data['Close'].ewm(span=30, adjust=False).mean()
         
-        data = calculate_macd(data)
+        # data = calculate_macd(data)
+        # data['Volume_MA'] = data['Volume'].rolling(window=20).mean()54rt         
+        # data['Signal'] = 0  # 1 for Buy, -1 for Sell
         
-        data['Volume_MA'] = data['Volume'].rolling(window=20).mean()54rt         
-        data['Signal'] = 0  # 1 for Buy, -1 for Sell
+        # # Entry condition
+        # data.loc[(data['15EMA'] > data['30EMA']) & (data['MACD'] > data['Signal_Line']) & (data['Volume'] > data['Volume_MA']), 'Signal'] = 1
         
-        # Entry condition
-        data.loc[(data['15EMA'] > data['30EMA']) & (data['MACD'] > data['Signal_Line']) & (data['Volume'] > data['Volume_MA']), 'Signal'] = 1
-        
-        # Exit condition
-        data.loc[data['Signal'].shift(1) == 1, 'Target'] = data['Close'] * 1.04  # 4:1 risk-reward ratio
-        
+        # # Exit condition
+        # data.loc[data['Signal'].shift(1) == 1, 'Target'] = data['Close'] * 1.04  # 4:1 risk-reward ratio
         return data
 
-    print(ema_strategy(df))
-    #get last data
-        # latest_candel = df.iloc[-10]
-        # latest_candel = df
-        # if df['Cross_Up'][i] == 1 and df['RSI_Up'][i] ==1 :
-        #     LTP = latest_candel['Close']
-        #     SL = LTP - 2*latest_candel['ATR_20']
-        #     target = LTP + 5*latest_candel['ATR_20']
-        #     qty = 1
-        #     print(f'Order Placed SL {SL} TGT {target} QTY {qty} at {datetime.now()}')
+    def EMA15_cross_BBMiddle(data):
+        print(data)
+        data['Buy_Signal'] = 'No'  # 1 for Buy
+    
+    # Generate buy signal when 15 EMA crosses the Bollinger Bands middle line from below
+        for i in range(1, len(data)):
+            if data['15EMA'].iloc[i-1] <= data['Middle'].iloc[i-1] and data['15EMA'].iloc[i] > data['Middle'].iloc[i]:
+                data['Buy_Signal'].iloc[i] = 'Buy'
+        print(data)
+        latest_candel = df.iloc[-1]
+        print(latest_candel)
+
+        LTP = latest_candel['Close']
+        # SL = LTP - 2*latest_candel['ATR_20']
+        # target = LTP + 5*latest_candel['ATR_20']
+        SL = LTP - 1
+        target = LTP + 2
+        qty = 1
+        # return data
+        if(latest_candel['Buy_Signal'] == 'Buy'):
+            executed_orders_count += 1
+            if(executed_orders_count < 4):
+            # get last data
+                order = order_place(token, symbol, qty, 'BUY', 'MARKET', 0)
+                Sell = order_place(token, symbol, qty, 'SELL', 'STOPLOSS_MARKET', 0 , variety = 'STOPLOSS', triggerprice = SL)
+                TGT = order_place(token, symbol, qty, 'SELL', 'LIMIT', target)
+                print(f'Order Placed SL {SL} TGT {target} QTY {qty} at {datetime.now()}')
+            else: 
+                print('All Orders Executed')
+        else:
+            print(f'Order not Placed because Here is no "Buy Signal" at SL {SL} TGT {target} QTY {qty} at {datetime.now()}')
 
     # df.tail(10)
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', None)
+    pd.set_option('display.max_rows', None)
+    ema_strategy(df)
+    calculate_bollinger_bands(df)
+    EMA15_cross_BBMiddle(df)
+    # print(df)
 
-#MACD apply
-    # Replace 'short_window' and 'long_window' with the desired short and long windows for MACD
-    short_window = 12
-    long_window = 26
+def run_code():
+    while True:
+    # Set the desired time frame (e.g., 65 seconds from the start time)
+        start = time.time()
+        print(start)
+        timeFrame = datetime.fromtimestamp(start) + timedelta(seconds=65)
+        time_remaining = (timeFrame - datetime.fromtimestamp(start)).total_seconds()
+        print("Time Remaining: ", str(timedelta(seconds=time_remaining)))
 
-    # Calculate short-term and long-term exponential moving averages
-    short_ema = df['Close'].ewm(span=short_window, adjust=False).mean()
-    long_ema = df['Close'].ewm(span=long_window, adjust=False).mean()
+        # Sleep for the calculated time interval
+        time.sleep(time_remaining)
+        historical_data(1660, 'ITC-EQ')   #Nifty showing Error. code 65622, ITC=1660
 
-    # Calculate MACD line
-    macd_line = short_ema - long_ema
-
-    # Calculate signal line using a 9-day EMA of the MACD line
-    signal_line = macd_line.ewm(span=9, adjust=False).mean()
-
-    # Calculate the MACD histogram
-    macd_histogram = macd_line - signal_line
-
-    # Add the calculated MACD components as new columns to the DataFrame
-    df['MACD_line'] = macd_line
-    df['Signal_line'] = signal_line
-    df['MACD_histogram'] = macd_histogram
-
-historical_data(1660)   #Nifty showing Error. code 65622, ITC=1660
+run_code()
 
     # print(df['timestamp','Open', 'High', 'Low', 'Close', 'Volumn', 'EMA_20', 'RSI_14', 'ATR_14'])
     # pd.set_option('display.max_columns', None)
