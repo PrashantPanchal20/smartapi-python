@@ -1,6 +1,10 @@
 # package import statement
 # import sys
 # sys.path.append("C:\Users\panch\Desktop\Prashant\smartapi-python\SmartApi")
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.metrics import mean_squared_error
+import ta
 import pyotp
 import pandas as pd
 from datetime import datetime
@@ -17,6 +21,7 @@ totp = pyotp.TOTP(token).now()
 apikey = "1ZRvKQlF"
 username = "IIRA93449"
 pwd = "1336"
+
 
 obj=SmartConnect(api_key = apikey)
 data = obj.generateSession(username, pwd, totp)
@@ -99,7 +104,7 @@ print(token_info['symbol'], token_info['token'], token_info['lotsize'])
 # # print(LTP)
 
 
-#Historic api == Candel data function= Only for Equity segment
+# Historic api == Candel data function= Only for Equity segment
 # def historical_data():
 #     try:
 #         historicParam={
@@ -124,9 +129,9 @@ print(token_info['symbol'], token_info['token'], token_info['lotsize'])
 
 from datetime import timedelta
 #Historic api == Candel data function= Only for Equity segment
-def historical_data(token, interval = "FIFTEEN_MINUTE"):
+def historical_data(token, interval = "FIVE_MINUTE"):  # ONE_MINUTE , THREE_MINUTE, FIVE_MINUTE, TEN_MINUTE, FIFTEEN_MINUTE
     to_date = datetime.now()
-    from_date = to_date - timedelta(days=5)
+    from_date = to_date - timedelta(days=6)
     from_date_format = from_date.strftime("%Y-%m-%d %H:%M")
     to_date_format = to_date.strftime("%Y-%m-%d %H:%M")
 
@@ -139,11 +144,15 @@ def historical_data(token, interval = "FIFTEEN_MINUTE"):
         "todate": to_date_format
         }
         candel_json = obj.getCandleData(historicParam)
-        columns = ['timestamp','Open', 'High', 'Low', 'Close', 'Volumn']
+        columns = ['timestamp','Open', 'High', 'Low', 'Close', 'Volume']
         df = pd.DataFrame(candel_json['data'], columns = columns)
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         df['timestamp'] = df['timestamp'].dt.strftime("%Y-%m-%d %H:%M")
         # return df
+        # pd.set_option('display.max_columns', None)
+        # pd.set_option('display.width', None)
+        # pd.set_option('display.max_rows', None)
+        # print(df)  
         
 
     except Exception as e:
@@ -153,8 +162,15 @@ def historical_data(token, interval = "FIFTEEN_MINUTE"):
     # df['EMA_20'] = talib.EMA(df.close, timeperiod = 20)
     # df['RSI_14'] = talib.RSI(df.close, timeperiod = 14)
     # df['ATR_20'] = talib.ATR(df.High, df.Low, df.close, timeperiod = 20)
-    ema_period = 20
-    df['EMA_20'] = df['Close'].ewm(span=ema_period, adjust=False).mean()
+    ema_period = 15
+    df['EMA_15'] = df['Close'].ewm(span=ema_period, adjust=False).mean()
+    # df['EMA_slope'] = np.polyfit(df.index, df['EMA_15'], 1)
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', None)
+    pd.set_option('display.max_rows', None)
+    print(df)
+
+
 
     rsi_period = 14
     # Calculate daily price changes
@@ -189,21 +205,71 @@ def historical_data(token, interval = "FIFTEEN_MINUTE"):
     df['ATR_20'] = tr.rolling(window=atr_period).mean()
 
 #Stratagy on the basis of EMA, RSI and ATR
-    df['Cross_Up'] = df['Cross_Down'] = df['RSI_Up'] = 0
-    df['Buy/Sell'] = 'No'
-    df = df.round(decimals = 2)
+    # df['Cross_Up'] = df['Cross_Down'] = df['RSI_Up'] = 0
+    # df['Buy/Sell'] = 'No'
+    # df = df.round(decimals = 2)
 
-    for i  in range(20, len(df)):
-        if df['Close'][i-1] <= df['EMA_20'][i-1] and df['Close'][i] > df['EMA_20'][i]:
-            df['Cross_Up'][i] = 1
-        if df['Close'][i-1] >= df['EMA_20'][i-1] and df['Close'][i] < df['EMA_20'][i]:
-            df['Cross_Down'][i] = 1
-        if df['RSI_14'][i] > 50:
-            df['RSI_Up'][i] = 1
+    # for i  in range(20, len(df)):
+    #     if df['Close'][i-1] <= df['EMA_20'][i-1] and df['Close'][i] > df['EMA_20'][i]:
+    #         df['Cross_Up'][i] = 1
+    #     if df['Close'][i-1] >= df['EMA_20'][i-1] and df['Close'][i] < df['EMA_20'][i]:
+    #         df['Cross_Down'][i] = 1
+    #     if df['RSI_14'][i] > 38: #50
+    #         df['RSI_Up'][i] = 1
     
-        if df['Cross_Up'][i] == 1 and df['RSI_Up'][i] ==1 :
-            df['Buy/Sell'][i] = 'Buy'
+    #     if df['Cross_Up'][i] == 1 and df['RSI_Up'][i] ==1 :
+    #         df['Buy/Sell'][i] = 'Buy'
+    
+#EMA based statigy applyied
+    def calculate_bollinger_bands(data, window=20, num_std_dev=1.5):
+        data['PriceChange'] = data['Close'].pct_change()
+        
+        # Drop NaN values
+        data.dropna(inplace=True)
+        
+        # Calculate Bollinger Bands
+        data['Middle'] = data['Close'].rolling(window=window).mean()
+        data['bb_upper'] = ta.volatility.bollinger_hband(data['Close'], window=window, window_dev=num_std_dev)
+        
+        return data
 
+    # Create a column for sell signals
+    # df['SellSignal'] = 'No'
+    # Identify candles closing from above to below the upper Bollinger Band
+    # sell_condition = (df['Close'] > df['bb_upper'].shift(1)) & (df['Close'] < df['bb_upper'])
+    # Apply sell signal to the confirmation candle
+    # df.loc[sell_condition, 'SellSignal'] = 'Sell'
+
+
+    # Display the DataFrame with predictions
+    # print(df[['timestamp', 'Close', 'PriceChange', 'PredictedChange']])
+    def calculate_macd(data, fast_period=12, slow_period=26, signal_period=9):
+        data['12EMA'] = data['Close'].ewm(span=fast_period, adjust=False).mean()
+        data['26EMA'] = data['Close'].ewm(span=slow_period, adjust=False).mean()
+        
+        data['MACD'] = data['12EMA'] - data['26EMA']
+        
+        data['Signal_Line'] = data['MACD'].ewm(span=signal_period, adjust=False).mean()
+        return data
+
+    def ema_strategy(data):
+        data['15EMA'] = data['Close'].ewm(span=15, adjust=False).mean()
+        data['30EMA'] = data['Close'].ewm(span=30, adjust=False).mean()
+        
+        data = calculate_macd(data)
+        
+        data['Volume_MA'] = data['Volume'].rolling(window=20).mean()54rt         
+        data['Signal'] = 0  # 1 for Buy, -1 for Sell
+        
+        # Entry condition
+        data.loc[(data['15EMA'] > data['30EMA']) & (data['MACD'] > data['Signal_Line']) & (data['Volume'] > data['Volume_MA']), 'Signal'] = 1
+        
+        # Exit condition
+        data.loc[data['Signal'].shift(1) == 1, 'Target'] = data['Close'] * 1.04  # 4:1 risk-reward ratio
+        
+        return data
+
+    print(ema_strategy(df))
     #get last data
         # latest_candel = df.iloc[-10]
         # latest_candel = df
@@ -239,18 +305,67 @@ def historical_data(token, interval = "FIFTEEN_MINUTE"):
     df['Signal_line'] = signal_line
     df['MACD_histogram'] = macd_histogram
 
-    # print(df['timestamp','Open', 'High', 'Low', 'Close', 'Volumn', 'EMA_20', 'RSI_14', 'ATR_14'])
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', None)
-    print(df)
-    
-
 historical_data(1660)   #Nifty showing Error. code 65622, ITC=1660
 
-#indicator applied
+    # print(df['timestamp','Open', 'High', 'Low', 'Close', 'Volumn', 'EMA_20', 'RSI_14', 'ATR_14'])
+    # pd.set_option('display.max_columns', None)
+    # pd.set_option('display.width', None)
+    # pd.set_option('display.max_rows', None)
+    # print(df)
 
 
-# #logout
+    # Assuming df is your pandas DataFrame with OHLC data including the 'Volume' column
+
+# Feature engineering: Creating a simple feature for demonstration
+    # df['PriceChange'] = df['Close'].pct_change()
+    # df['VolumeChange'] = df['Volumn'].pct_change()
+    # df['Target'] = df['PriceChange'].shift(-1)  # Shift target by one day
+
+    # # Drop NaN values
+    # df.dropna(inplace=True)
+
+    # # Features and target variable
+    # X = df[['PriceChange', 'VolumeChange']]
+    # y = df['Target']
+
+    # # Split the data into training and testing sets
+    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # # Initialize the Decision Tree Regressor
+    # regressor = DecisionTreeRegressor()
+
+    # # Train the model
+    # regressor.fit(X_train, y_train)
+
+    # # Make predictions on the full dataset
+    # df['PredictedChange'] = regressor.predict(X)
+
+    # # Set thresholds for deciding when to buy or sell
+    # buy_threshold = 0.005  # Positive change threshold for buy signal
+    # sell_threshold = -0.005  # Negative change threshold for sell signal
+    # reward_ratio = 2.0  # Risk-reward ratio for the additional buy signal
+
+    # # Generate buy, sell, and reward signals
+    # df['BuySignal'] = ((df['PredictedChange'] > buy_threshold) & (df['VolumeChange'] > 0)).astype(int)
+    # df['SellSignal'] = ((df['PredictedChange'] < sell_threshold) & (df['VolumeChange'] > 0)).astype(int)
+    # df['RewardSignal'] = ((df['PredictedChange'] > buy_threshold * reward_ratio) & (df['VolumeChange'] > 0)).astype(int)
+
+    # # Cumulative signals
+    # df['CumulativeBuySignal'] = df['BuySignal'].cumsum()
+    # df['CumulativeSellSignal'] = df['SellSignal'].cumsum()
+    # df['CumulativeRewardSignal'] = df['RewardSignal'].cumsum()
+
+
+
+    # pd.set_option('display.max_columns', None)
+    # pd.set_option('display.width', None)
+    # pd.set_option('display.max_rows', None)
+    # print(df)
+    
+# indicator applied
+
+
+#logout
 # try:
 #     logout=obj.terminateSession('Your Client Id')
 #     print("Logout Successfull")
@@ -258,7 +373,7 @@ historical_data(1660)   #Nifty showing Error. code 65622, ITC=1660
 #     print("Logout failed: {}".format(e.message))
 
 
-#gtt rule creation
+# gtt rule creation
 # try:
 #     gttCreateParams={
 #             "tradingsymbol" : "SBIN-EQ",
@@ -291,11 +406,24 @@ historical_data(1660)   #Nifty showing Error. code 65622, ITC=1660
 
 # from SmartApi.webSocket import WebSocket
 
-# FEED_TOKEN= "your feed token"
-# CLIENT_CODE="your client Id"
-# token="channel you want the information of" #"nse_cm|2885&nse_cm|1594&nse_cm|11536"
-# task="task" #"mw"|"sfi"|"dp"
+# FEED_TOKEN= feedToken
+# CLIENT_CODE="IIRA93449"
+# token="mcx_fo|224570&nse_cm|2885&nse_fo|53179&cde_fo|7395" #"nse_cm|2885&nse_cm|1594&nse_cm|11536"
+# task="mw" #"mw"|"sfi"|"dp"
 # ss = WebSocket(FEED_TOKEN, CLIENT_CODE)
+
+# def on_message(ws,message):
+#     print("Ticks: {}".format(message))
+
+# def on_open(ws):
+#     print("on open")
+#     ss.subscribe(task, token)
+
+# def on_error(ws, error):
+#     print("Error")
+    
+# def on_close(ws):
+#     print("close")
 
 # def on_tick(ws, tick):
 #     print("Ticks: {}".format(tick))
@@ -308,6 +436,9 @@ historical_data(1660)   #Nifty showing Error. code 65622, ITC=1660
 #     ws.stop()
 
 # # Assign the callbacks.
+# ss.on_open = on_open
+# ss._on_message = on_message
+# ss._on_error = on_error
 # ss.on_ticks = on_tick
 # ss.on_connect = on_connect
 # ss.on_close = on_close
