@@ -11,32 +11,33 @@ import pandas as pd
 from datetime import datetime
 import requests
 import numpy as np
+from datetime import timedelta
 from SmartApi import SmartConnect #or from smartapi.smartConnect import SmartConnect
 from signals import *
+from historical_data import *
 # from talib.abstract import *
 # import talib
 #import smartapi.smartExceptions(for smartExceptions)
 token = "U6MVYLHYB73EO5VYRSZFZOPOG4"
 totp = pyotp.TOTP(token).now()
-# print(totp)
-#create object of call
+print(totp)
 apikey = "6kF1Q7kE"  #https://smartapi.angelbroking.com/apps
 username = "IIRA93449"
 pwd = "1336"
 
 
-obj=SmartConnect(api_key = apikey)
+obj = SmartConnect(api_key = apikey)
 data = obj.generateSession(username, pwd, totp)
-print(data)
+# print("data from Generate session = ",data)
 
 refreshToken= data['data']['refreshToken']
-print(refreshToken)
+# print("Refresh token is = ",refreshToken)
 #fetch the feedtoken
-feedToken=obj.getfeedToken()
+# feedToken=obj.getfeedToken()
 #fetch User Profile
 userProfile= obj.getProfile(refreshToken)
 # print(userProfile['data']['exchanges'])
-print(userProfile)
+# print(userProfile)
 def order_place(token, symbol, qty, buy_sell, ordertype, price, variety = 'NORMAL', exch_seg = 'NSE', triggerprice = 0):
     try:
         orderparams = {
@@ -57,7 +58,7 @@ def order_place(token, symbol, qty, buy_sell, ordertype, price, variety = 'NORMA
         orderId = obj.placeOrder(orderparams) 
         print("The order id is: {}".format(orderId))
     except Exception as e:
-        print("Order placement failed: {}".format(e.message))
+        print("Order placement failed: {}".format(e.args[0]))
 
 
 # Order book
@@ -72,48 +73,20 @@ def order_place(token, symbol, qty, buy_sell, ordertype, price, variety = 'NORMA
 # LTP = obj.ltpData('NFO',token_info['symbol'], token_info['token'])
 # # print(LTP)
 
-
 from datetime import timedelta
-#Historic api == Candel data function= Only for Equity segment
-def historical_data(token, symbol, interval = "ONE_MINUTE"):  # ONE_MINUTE , THREE_MINUTE, FIVE_MINUTE, TEN_MINUTE, FIFTEEN_MINUTE
-    to_date = datetime.now()
-    from_date = to_date - timedelta(days=6)
-    from_date_format = from_date.strftime("%Y-%m-%d %H:%M")
-    to_date_format = to_date.strftime("%Y-%m-%d %H:%M")
-    executed_orders_count = 0
-
-    try:
-        historicParam={
-        "exchange": "NSE",
-        "symboltoken": token,
-        "interval": interval,
-        "fromdate": from_date_format, 
-        "todate": to_date_format
-        }
-        candel_json = obj.getCandleData(historicParam)
-        columns = ['timestamp','Open', 'High', 'Low', 'Close', 'Volume']
-        df = pd.DataFrame(candel_json['data'], columns = columns)
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
-        df['timestamp'] = df['timestamp'].dt.strftime("%Y-%m-%d %H:%M")
-        return df
-        # pd.set_option('display.max_columns', None)
-        # pd.set_option('display.width', None)
-        # pd.set_option('display.max_rows', None)
-        # print(df)  
-    except Exception as e:
-        print("Historic Api failed: {}".format(e.message))
-
+from datetime import datetime
 
 def EMA15_cross_BBMiddle(data):
-    print(data)
+    # print(data)
+    # print("Getting data get successfully")
     data['Buy_Signal'] = 'No'  # 1 for Buy
 
 # Generate buy signal when 15 EMA crosses the Bollinger Bands middle line from below
     for i in range(1, len(data)):
         if data['15EMA'].iloc[i-1] <= data['Middle'].iloc[i-1] and data['15EMA'].iloc[i] > data['Middle'].iloc[i]:
             data['Buy_Signal'].iloc[i] = 'Buy'
-    print(data)
-    latest_candel = df.iloc[-1]
+    # print(data)
+    latest_candel = data.iloc[-1]
     print(latest_candel)
 
     LTP = latest_candel['Close']
@@ -136,15 +109,6 @@ def EMA15_cross_BBMiddle(data):
     else:
         print(f'Order not Placed because Here is no "Buy Signal" at SL {SL} TGT {target} QTY {qty} at {datetime.now()}')
 
-    # df.tail(10)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', None)
-    pd.set_option('display.max_rows', None)
-    # ema_strategy(df)
-    # calculate_bollinger_bands(df)
-    # EMA15_cross_BBMiddle(df)
-    # print(df)
-
 def run_code():
     while True:
     # Set the desired time frame (e.g., 65 seconds from the start time)
@@ -156,8 +120,11 @@ def run_code():
 
         # Sleep for the calculated time interval
         time.sleep(time_remaining)
-        historical_data(1660, 'ITC-EQ')   #Nifty showing Error. code 65622, ITC=1660
-        print(df)
+        pd.set_option('display.max_columns', None)
+        pd.set_option('display.width', None)
+        pd.set_option('display.max_rows', None)
+        df = historical_data_(obj, 1660, 'ITC-EQ')   #Nifty showing Error. code 65622, ITC=1660
+
         ema_strategy(df)
         calculate_bollinger_bands(df)
         EMA15_cross_BBMiddle(df)
@@ -170,8 +137,10 @@ run_code()
     # pd.set_option('display.max_rows', None)
     # print(df)
 
-
     # Assuming df is your pandas DataFrame with OHLC data including the 'Volume' column
+
+
+
 
 # Feature engineering: Creating a simple feature for demonstration
     # df['PriceChange'] = df['Close'].pct_change()
