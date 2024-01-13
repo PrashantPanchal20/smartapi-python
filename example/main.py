@@ -83,10 +83,11 @@ def EMA15_cross_BBMiddle(data, symbol):
     data['Buy_Signal'] = 'No'  # 1 for Buy
 
 # Generate buy signal when 15 EMA crosses the Bollinger Bands middle line from below
-    for i in range(1, len(data)):
+    for i in range(1, len(data.tail(10))):
         if data['15EMA'].iloc[i-1] <= data['Middle'].iloc[i-1] and data['15EMA'].iloc[i] > data['Middle'].iloc[i]:
             data['Buy_Signal'].iloc[i] = 'Buy'
-    print(data)
+            
+    print(data.tail(10))
     latest_candel = data.iloc[-7]
     print(latest_candel)
 
