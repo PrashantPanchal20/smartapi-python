@@ -76,7 +76,8 @@ def order_place(token, symbol, qty, buy_sell, ordertype, price, variety = 'NORMA
 from datetime import timedelta
 from datetime import datetime
 
-def EMA15_cross_BBMiddle(data):
+def EMA15_cross_BBMiddle(data, symbol):
+    executed_orders_count = 0
     # print(data)
     # print("Getting data get successfully")
     data['Buy_Signal'] = 'No'  # 1 for Buy
@@ -85,8 +86,8 @@ def EMA15_cross_BBMiddle(data):
     for i in range(1, len(data)):
         if data['15EMA'].iloc[i-1] <= data['Middle'].iloc[i-1] and data['15EMA'].iloc[i] > data['Middle'].iloc[i]:
             data['Buy_Signal'].iloc[i] = 'Buy'
-    # print(data)
-    latest_candel = data.iloc[-1]
+    print(data)
+    latest_candel = data.iloc[-7]
     print(latest_candel)
 
     LTP = latest_candel['Close']
@@ -127,7 +128,7 @@ def run_code():
 
         ema_strategy(df)
         calculate_bollinger_bands(df)
-        EMA15_cross_BBMiddle(df)
+        EMA15_cross_BBMiddle(df, 'ITC-EQ')
 
 run_code()
 

@@ -6,3 +6,5 @@ build/*
 smartapi_python.egg-info
 dist/*
 __pycache__
+.vs
+dist
