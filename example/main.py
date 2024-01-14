@@ -1,5 +1,5 @@
 # package import statement
-# import sys
+import sys
 # sys.path.append("C:\Users\panch\Desktop\Prashant\smartapi-python\SmartApi")
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeRegressor
@@ -83,11 +83,11 @@ def EMA15_cross_BBMiddle(data, symbol):
     data['Buy_Signal'] = 'No'  # 1 for Buy
 
 # Generate buy signal when 15 EMA crosses the Bollinger Bands middle line from below
-    for i in range(1, len(data.tail(10))):
+    for i in range(1, len(data)):
         if data['15EMA'].iloc[i-1] <= data['Middle'].iloc[i-1] and data['15EMA'].iloc[i] > data['Middle'].iloc[i]:
             data['Buy_Signal'].iloc[i] = 'Buy'
-            
-    print(data.tail(10))
+    
+    print(data)
     latest_candel = data.iloc[-7]
     print(latest_candel)
 
@@ -121,7 +121,8 @@ def run_code():
         print("Time Remaining: ", str(timedelta(seconds=time_remaining)))
 
         # Sleep for the calculated time interval
-        time.sleep(time_remaining)
+        # time.sleep(time_remaining)
+        sys.stdout.flush()
         pd.set_option('display.max_columns', None)
         pd.set_option('display.width', None)
         pd.set_option('display.max_rows', None)
@@ -130,6 +131,7 @@ def run_code():
         ema_strategy(df)
         calculate_bollinger_bands(df)
         EMA15_cross_BBMiddle(df, 'ITC-EQ')
+        time.sleep(time_remaining)
 
 run_code()
 
