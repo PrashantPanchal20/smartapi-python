@@ -23,18 +23,20 @@ apikey = "6kF1Q7kE"  #https://smartapi.angelbroking.com/apps
 username = "IIRA93449"
 pwd = "1336"
 
+symbol_list = ['ITC']  #,'CDSL','IEX'
+traded_symbol = []
 
 obj = SmartConnect(api_key = apikey)
 data = obj.generateSession(username, pwd, totp)
 refreshToken= data['data']['refreshToken']
 userProfile= obj.getProfile(refreshToken)
 
-def order_place(token, symbol, qty, buy_sell, ordertype, price, variety = 'NORMAL', exch_seg = 'NSE', triggerprice = 0):
+def order_place(symbol_token, symbol, qty, buy_sell, ordertype, price, variety = 'NORMAL', exch_seg = 'NSE', triggerprice = 0):
     try:
         orderparams = {
             "variety": variety,
             "tradingsymbol": symbol,
-            "symboltoken": token,
+            "symboltoken": symbol_token,
             "transactiontype": buy_sell,
             "exchange": exch_seg,
             "ordertype": ordertype,
@@ -50,12 +52,13 @@ def order_place(token, symbol, qty, buy_sell, ordertype, price, variety = 'NORMA
         print("The order id is: {}".format(orderId))
     except Exception as e:
         print("Order placement failed: {}".format(e.args[0]))
+        
 
 
 from datetime import timedelta
 from datetime import datetime
 
-def EMA15_cross_BBMiddle(data, symbol):
+def EMA15_cross_BBMiddle(data, symbol, symbol_token):
     executed_orders_count = 0
     data['Buy_Signal'] = 'No'  # 1 for Buy
 
@@ -78,13 +81,12 @@ def EMA15_cross_BBMiddle(data, symbol):
     list_EMA_Values.clear()
     list_close_Values.clear()
     list_EMA_Values.clear()
-    result = 0
     for i in range(1, len(data)):
         list_EMA_Values.append(data['15EMA'].iloc[i])
         list_close_Values.append(data['Close'].iloc[i])
         list_close_signal.append(data['Buy_Signal'].iloc[i])
         
-        print("Index is = ", i ,list_close_signal)
+        # print("Index is = ", i ,list_close_signal)
         if(i > 6): 
             last_4_values_ema = list_EMA_Values[-5:-1]
             last_4_values_close = list_close_Values[-5:-1]
@@ -98,7 +100,7 @@ def EMA15_cross_BBMiddle(data, symbol):
                     else:
                         data.at[i, 'Buy_Signal'] = 'Buy'
                         list_close_signal.append('Buy')
-                        print("111", list_close_signal)
+                        # print("111", list_close_signal)
                 else:
                     pass
             else:
@@ -109,7 +111,7 @@ def EMA15_cross_BBMiddle(data, symbol):
 
     print(data)
 
-    latest_candel = data.iloc[-3]   #change -1 in live market
+    latest_candel = data.iloc[-1]   #change -1 in live market
     print(latest_candel)
     LTP = latest_candel['Close']
     # SL = LTP - 2*latest_candel['ATR_20']
@@ -122,17 +124,20 @@ def EMA15_cross_BBMiddle(data, symbol):
         executed_orders_count += 1
         if(executed_orders_count < 4):
         # get last data
-            order = order_place(token, symbol, qty, 'BUY', 'MARKET', 0)
-            Sell = order_place(token, symbol, qty, 'SELL', 'STOPLOSS_MARKET', 0 , variety = 'STOPLOSS', triggerprice = SL)
-            TGT = order_place(token, symbol, qty, 'SELL', 'LIMIT', target)
+            order = order_place(symbol_token, symbol, qty, 'BUY', 'MARKET', 0)
+            Sell = order_place(symbol_token, symbol, qty, 'SELL', 'STOPLOSS_MARKET', 0 , variety = 'STOPLOSS', triggerprice = SL)
+            TGT = order_place(symbol_token, symbol, qty, 'SELL', 'LIMIT', target)
             print(f'Order Placed SL {SL} TGT {target} QTY {qty} at {datetime.now()}')
+            
         else: 
+            pass
             print('All Orders Executed')
     else:
+        pass
         print(f'Order not Placed because Here is no "Buy Signal" at SL {SL} TGT {target} QTY {qty} at {datetime.now()}')
 
 def run_code():
-    # while True:
+    while True:
     # Set the desired time frame (e.g., 65 seconds from the start time)
         start = time.time()
         print(start)
@@ -143,12 +148,12 @@ def run_code():
         pd.set_option('display.max_columns', None)
         pd.set_option('display.width', None)
         pd.set_option('display.max_rows', None)
-        df = historical_data_(obj, 1660, 'ITC-EQ')   #Nifty showing Error. code 65622, ITC=1660
+        df = historical_data_(obj, 1660)   #Nifty showing Error. code 65622, ITC=1660
         # print(df.tail(20))
         ema_strategy(df)
         calculate_bollinger_bands(df)
-        EMA15_cross_BBMiddle(df, 'ITC-EQ')
-        # time.sleep(time_remaining)
+        EMA15_cross_BBMiddle(df, 'ITC', 1660)   
+        time.sleep(time_remaining)
 
 run_code()
 

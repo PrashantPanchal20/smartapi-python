@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from api_page import api_tab_design
 
 
 def update_clk():
@@ -109,7 +110,7 @@ def _main_window():
 
     window = ThemedTk(theme='arc', )
     window.title("Think More and more, Be Continue")
-    window.geometry("1300x900")
+    window.geometry("1300x800")
     style = ttk.Style(window)
     style.configure('.', font=('Times New Roman',10))
     style.configure('TButton', font=('Helvetica', 11))
@@ -316,6 +317,8 @@ def _main_window():
         data2 =df2.values.tolist()
         df_col2 = df2.columns.values
         # print(df1)
+        print(data2)
+        print(df_col2)
 
         for x in range(len(df_col2)):
             table2.column(x, width=100 )
@@ -351,36 +354,16 @@ def _main_window():
     op_field.pack(fill = BOTH, expand = True)
     op_field.xview_scroll(1, 'units')
 
-#=========================================================== TAB 4 company stock data ================================
-    def create_labeled_frame(root, label_text, frame_height):
-        frame = ttk.LabelFrame(root, text=label_text, height=frame_height)
-        frame.pack(fill = 'both')
-        return frame
-
-    tab4_frame0 = Frame(tab4, background="yellow", height = 100)
-    tab4_frame0.pack(fill="x")
-
-    frame1 = create_labeled_frame(tab4_frame0, "Welcome ::", 80)
-    label1 = ttk.Label(frame1, text="")
-    label1.pack()
-    button_getOI_chart = ttk.Button(frame1, text= 'Get OI Data on Graph. ', command= get_oi_char)
-    button_getOI_chart.place(x=0, y=0)
-
-    tab4_frame1 = Frame(tab4, background="yellow",width=150)
-    tab4_frame1.pack(side= 'left', fill="y")
-
-    tab4_frame2 = Frame(tab4,background="blue", height=450)
-    tab4_frame2.pack(fill= 'x')
-
-    tab4_frame3 = Frame(tab4,background="pink", height=150)
-    tab4_frame3.pack(fill= 'x')
-
-
-
+    api_tab_design(tab4)
     update_clk()
     window.mainloop()
-    
+
+import sys
+sys.path.append('D:\Prashant\smartapi-python') 
+from example.get_token import get_token_api
+
 if __name__ == "__main__" :
+        # get_token_api()
         _main_window()
         
         
